@@ -1,0 +1,821 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustVault | Secure Document Management</title>
+
+<style>
+:root {
+    --bg: #070d1b;
+    --panel: #101b31;
+    --panel2: #142440;
+    --border: #263957;
+    --blue: #6487ff;
+    --text: #f2f5ff;
+    --muted: #a8b6d0;
+    --green: #6ce0b0;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: radial-gradient(ellipse at 70% 0%, #192c53, transparent 45%), var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+button, input, select { font: inherit; }
+button {
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    padding: 11px 15px;
+    background: linear-gradient(135deg, #6688ff, #405fe0);
+    color: white;
+    font-weight: 600;
+    margin: 4px 3px 4px 0;
+}
+button:hover { filter: brightness(1.15); }
+button.secondary { background: #1b2c49; border-color: #354b70; }
+button.danger { background: #632d42; border-color: #814057; }
+input, select {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 14px;
+    border: 1px solid #344765;
+    border-radius: 9px;
+    background: #091326;
+    color: #ffffff;
+    outline: none;
+}
+input::placeholder { color: #a2b0c8; opacity: 1; }
+input:focus, select:focus { border-color: var(--blue); }
+label { color: #d4def2; font-size: 14px; }
+header {
+    min-height: 80px;
+    padding: 18px 5%;
+    background: #091326ee;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 13px; }
+.logo {
+    width: 44px; height: 44px;
+    display: grid; place-items: center;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #7695ff, #3e58cc);
+    font-size: 24px;
+}
+header h1 { margin: 0; font-size: 24px; letter-spacing: -.5px; }
+header p { margin: 3px 0 0; color: #a8bfff; font-size: 11px; letter-spacing: 2px; }
+#accountArea { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#accountStatus { color: #d2ddf2; font-size: 14px; }
+.layout {
+    width: min(1400px, 96%);
+    margin: 25px auto;
+    display: grid;
+    grid-template-columns: 225px minmax(0, 1fr);
+    gap: 23px;
+}
+.sidebar {
+    background: #0b1529;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 14px;
+    align-self: start;
+    position: sticky;
+    top: 20px;
+}
+.side-label {
+    color: #8497b9;
+    font-size: 11px;
+    letter-spacing: 1.8px;
+    padding: 8px 12px;
+}
+.nav-item {
+    width: 100%;
+    display: block;
+    text-align: left;
+    background: transparent;
+    color: #c0cce1;
+    border: 1px solid transparent;
+    margin: 3px 0;
+}
+.nav-item:hover, .nav-item.active {
+    background: #1a2b4b;
+    color: white;
+    border-color: #2c4269;
+}
+.sidebar-note {
+    border-top: 1px solid var(--border);
+    margin-top: 22px;
+    padding: 18px 10px 5px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+main { min-width: 0; }
+.hero {
+    padding: 30px;
+    border: 1px solid #30466e;
+    border-radius: 18px;
+    background: linear-gradient(115deg, #192c4c, #101b31 70%);
+    margin-bottom: 22px;
+}
+.eyebrow {
+    color: #9bb5ff;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 2px;
+    font-weight: 700;
+}
+.hero h2 { font-size: clamp(25px, 3vw, 36px); margin: 10px 0; }
+.hero p { color: #bdc9df; margin: 0; line-height: 1.7; }
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 23px;
+}
+.stat {
+    background: linear-gradient(145deg, #142440, #0e192d);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+}
+.stat-label { color: var(--muted); font-size: 13px; }
+.stat-number { font-size: 29px; font-weight: 700; margin-top: 8px; }
+.stat-icon { float: right; font-size: 23px; }
+.card {
+    background: linear-gradient(145deg, #111f38, #0c172a);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 23px;
+    margin-bottom: 22px;
+    min-width: 0;
+}
+.card h2 { font-size: 19px; margin: 0 0 8px; }
+.description { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+.hidden { display: none !important; }
+.status {
+    border: 1px solid #344b70;
+    background: #142440;
+    color: #e0e9ff;
+    padding: 13px 16px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    overflow-wrap: anywhere;
+}
+.status.error { border-color: #8b4154; background: #321b2b; color: #ffdbe4; }
+.status.success { border-color: #28674f; background: #102e2a; color: #a9f2d2; }
+.doc {
+    background: #12213a;
+    border: 1px solid #2b4062;
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 12px;
+    overflow-wrap: anywhere;
+}
+.doc h3 { margin: 0 0 10px; font-size: 16px; color: #f3f6ff; }
+.doc p { color: #bdc9df; font-size: 13px; line-height: 1.7; margin: 5px 0; }
+.badge {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 4px 10px;
+    margin-top: 9px;
+    background: #20365c;
+    border: 1px solid #395783;
+    color: #c6d7ff;
+    font-size: 11px;
+}
+.actions { margin-top: 13px; display: flex; flex-wrap: wrap; gap: 5px; }
+.actions button { font-size: 12px; padding: 9px 11px; }
+.empty { color: #b3c0d7; padding: 18px 0; font-size: 14px; }
+.activity-row {
+    border-bottom: 1px solid #263957;
+    padding: 13px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+.activity-row:last-child { border-bottom: none; }
+.activity-row strong { color: #e7edff; }
+.activity-row p { margin: 5px 0; color: var(--muted); font-size: 13px; }
+footer {
+    text-align: center;
+    padding: 25px 10px;
+    color: #8495b3;
+    border-top: 1px solid #1f2d45;
+    font-size: 12px;
+}
+@media(max-width: 850px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; }
+    .sidebar nav { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 5px; }
+    .sidebar-note { display: none; }
+}
+@media(max-width: 550px) {
+    header { padding: 15px; }
+    header h1 { font-size: 20px; }
+    .layout { width: 94%; margin: 15px auto; }
+    .hero, .card { padding: 18px; }
+    .stats { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+<header>
+    <div class="brand">
+        <div class="logo">⬡</div>
+        <div>
+            <h1>TrustVault</h1>
+            <p>SECURE DOCUMENT MANAGEMENT</p>
+        </div>
+    </div>
+    <div id="accountArea">
+        <span id="accountStatus">Not logged in</span>
+        <button id="logoutBtn" class="secondary hidden" onclick="logout()">Log out</button>
+    </div>
+</header>
+
+<div class="layout">
+    <aside class="sidebar">
+        <div class="side-label">WORKSPACE</div>
+        <nav>
+            <button class="nav-item active" onclick="showSection('home',this)">⌂ &nbsp; Dashboard</button>
+            <button class="nav-item" onclick="showSection('files',this)">▤ &nbsp; My Documents</button>
+            <button class="nav-item" onclick="showSection('upload',this)">↑ &nbsp; Upload Files</button>
+            <button class="nav-item" onclick="showSection('sharing',this)">⇄ &nbsp; Share Access</button>
+            <button class="nav-item" onclick="showSection('activity',this)">◷ &nbsp; Audit History</button>
+            <button class="nav-item" onclick="showSection('account',this)">◎ &nbsp; Account</button>
+        </nav>
+        <div class="sidebar-note">
+            <strong style="color:#e7edff">Your files. Your control.</strong>
+            <p>Manage documents and access permissions in one secure workspace.</p>
+            <span style="color:#6ce0b0">● API workspace</span>
+        </div>
+    </aside>
+
+    <main>
+        <div id="notice" class="status hidden" role="status"></div>
+
+        <section id="authSection" class="card">
+            <div class="eyebrow">WELCOME TO TRUSTVAULT</div>
+            <h2 style="margin-top:12px">Your secure workspace starts here.</h2>
+            <p class="description">Log in to access your documents, or create a new account.</p>
+            <div class="grid">
+                <form id="loginForm">
+                    <h2>Welcome back</h2>
+                    <p class="description">Sign in to your account.</p>
+                    <label for="loginId">Username or email</label>
+                    <input id="loginId" required placeholder="Enter username or email" autocomplete="username">
+                    <label for="loginPassword">Password</label>
+                    <input id="loginPassword" type="password" required placeholder="Enter password" autocomplete="current-password">
+                    <button type="submit">Sign in →</button>
+                </form>
+
+                <form id="registerForm">
+                    <h2>Create account</h2>
+                    <p class="description">Join TrustVault securely.</p>
+                    <label for="regName">Full name</label>
+                    <input id="regName" required placeholder="Your full name" autocomplete="name">
+                    <label for="regUsername">Username</label>
+                    <input id="regUsername" required placeholder="Choose username" autocomplete="username">
+                    <label for="regEmail">Email</label>
+                    <input id="regEmail" type="email" required placeholder="you@example.com" autocomplete="email">
+                    <label for="regPassword">Password</label>
+                    <input id="regPassword" type="password" minlength="8" required placeholder="Minimum 8 characters" autocomplete="new-password">
+                    <button type="submit">Create account →</button>
+                </form>
+            </div>
+        </section>
+
+        <div id="dashboard" class="hidden">
+            <section id="home" class="hero">
+                <div class="eyebrow">YOUR PRIVATE WORKSPACE</div>
+                <h2>Everything important, in one place.</h2>
+                <p>Upload, organize, share and manage your documents with access control and an activity trail.</p>
+            </section>
+
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-icon">▤</span>
+                    <div class="stat-label">Documents available</div>
+                    <div class="stat-number" id="totalDocs">0</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">⇄</span>
+                    <div class="stat-label">Shared with you</div>
+                    <div class="stat-number" id="sharedDocs">0</div>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">◷</span>
+                    <div class="stat-label">Recent activities</div>
+                    <div class="stat-number" id="totalActivities">0</div>
+                </div>
+            </div>
+
+            <section id="upload" class="card">
+                <h2>↑ &nbsp; Upload a document</h2>
+                <p class="description">Supported: PDF, TXT, PNG, JPG, JPEG, DOC, DOCX. Maximum 5 MB.</p>
+                <form id="uploadForm">
+                    <div class="grid">
+                        <div>
+                            <label for="uploadFile">Choose file</label>
+                            <input id="uploadFile" type="file" required accept=".pdf,.txt,.png,.jpg,.jpeg,.doc,.docx">
+                        </div>
+                        <div>
+                            <label for="uploadCategory">Category</label>
+                            <input id="uploadCategory" placeholder="e.g. Personal, Work" value="General">
+                        </div>
+                    </div>
+                    <button type="submit">Upload document ↑</button>
+                </form>
+            </section>
+
+            <section id="files" class="card">
+                <h2>▤ &nbsp; My documents</h2>
+                <p class="description">Your files and documents shared with you.</p>
+                <div class="grid">
+                    <div>
+                        <label for="searchInput">Search documents</label>
+                        <input id="searchInput" placeholder="Search name or category">
+                    </div>
+                    <div style="align-self:end">
+                        <button onclick="loadDocuments()">Refresh documents ↻</button>
+                    </div>
+                </div>
+                <div id="documentsList"><div class="empty">Log in to view your documents.</div></div>
+            </section>
+
+            <section id="sharing" class="card">
+                <h2>⇄ &nbsp; Share access</h2>
+                <p class="description">Share a document you own with another registered TrustVault user.</p>
+                <form id="shareForm">
+                    <div class="grid">
+                        <div>
+                            <label for="shareDocumentId">Document ID</label>
+                            <input id="shareDocumentId" type="number" min="1" required placeholder="Enter document ID">
+                        </div>
+                        <div>
+                            <label for="shareUsername">Share with username</label>
+                            <input id="shareUsername" required placeholder="Recipient username">
+                        </div>
+                    </div>
+                    <label for="sharePermission">Permission</label>
+                    <select id="sharePermission">
+                        <option value="VIEW">View only</option>
+                        <option value="EDIT">View and edit</option>
+                    </select>
+                    <button type="submit">Share document ⇄</button>
+                </form>
+            </section>
+
+            <section id="activity" class="card">
+                <h2>◷ &nbsp; Audit history</h2>
+                <p class="description">Recent document actions associated with your account.</p>
+                <button class="secondary" onclick="loadAudit()">Refresh activity ↻</button>
+                <div id="auditList"><div class="empty">No activities loaded yet.</div></div>
+            </section>
+
+            <section id="account" class="card">
+                <h2>◎ &nbsp; Account and security</h2>
+                <p class="description">You are using a JWT-authenticated TrustVault session.</p>
+                <p id="userDetails" style="color:#d5e0f4">Account information will appear here after login.</p>
+                <button class="danger" onclick="logout()">Sign out</button>
+            </section>
+        </div>
+    </main>
+</div>
+
+<footer>TrustVault · Secure Document Management · Protecting what matters.</footer>
+
+<script>
+const API = "/api";
+let token = sessionStorage.getItem("trustvault_token");
+let currentUser = null;
+let documentsCache = [];
+
+function el(id) {
+    return document.getElementById(id);
+}
+
+function showNotice(message, type = "") {
+    const box = el("notice");
+    box.textContent = message;
+    box.className = "status" + (type ? " " + type : "");
+    box.classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function hideNotice() {
+    el("notice").classList.add("hidden");
+}
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#39;"
+    })[ch]);
+}
+
+async function request(url, options = {}) {
+    const headers = new Headers(options.headers || {});
+    if (token) headers.set("Authorization", "Bearer " + token);
+
+    const response = await fetch(API + url, { ...options, headers });
+    const contentType = response.headers.get("content-type") || "";
+    let data;
+
+    if (contentType.includes("application/json")) {
+        data = await response.json();
+    } else {
+        data = await response.text();
+    }
+
+    if (!response.ok) {
+        const message = typeof data === "string"
+            ? data
+            : data.message || data.error || "Request failed (" + response.status + ")";
+        throw new Error(message);
+    }
+    return data;
+}
+
+function showSection(id, button) {
+    if (!token && id !== "home") {
+        showNotice("Please sign in to access your workspace.", "error");
+        return;
+    }
+
+    document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
+    if (button) button.classList.add("active");
+
+    const target = el(id);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function setLoggedIn(user) {
+    currentUser = user || currentUser;
+    el("authSection").classList.add("hidden");
+    el("dashboard").classList.remove("hidden");
+    el("logoutBtn").classList.remove("hidden");
+    el("accountStatus").textContent = currentUser
+        ? "Signed in: " + (currentUser.username || currentUser.name || "User")
+        : "Signed in securely";
+    el("userDetails").textContent = currentUser
+        ? "Username: " + (currentUser.username || "—") +
+          " | Email: " + (currentUser.email || "—") +
+          " | Role: " + (currentUser.role || "USER")
+        : "Your account is authenticated.";
+    loadDocuments();
+    loadAudit();
+}
+
+function logout() {
+    token = null;
+    currentUser = null;
+    documentsCache = [];
+    sessionStorage.removeItem("trustvault_token");
+    el("dashboard").classList.add("hidden");
+    el("authSection").classList.remove("hidden");
+    el("logoutBtn").classList.add("hidden");
+    el("accountStatus").textContent = "Not logged in";
+    el("documentsList").innerHTML = '<div class="empty">Log in to view your documents.</div>';
+    el("auditList").innerHTML = '<div class="empty">Log in to view audit history.</div>';
+    el("totalDocs").textContent = "0";
+    el("sharedDocs").textContent = "0";
+    el("totalActivities").textContent = "0";
+    showNotice("You have been signed out.", "success");
+}
+
+el("loginForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    hideNotice();
+    try {
+        const data = await request("/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: el("loginId").value.trim(),
+                password: el("loginPassword").value
+            })
+        });
+
+        token = data.token;
+        sessionStorage.setItem("trustvault_token", token);
+        currentUser = data.user || {
+            username: el("loginId").value.trim()
+        };
+        el("loginPassword").value = "";
+        setLoggedIn(currentUser);
+        showNotice("Welcome back! You are signed in.", "success");
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+});
+
+el("registerForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    hideNotice();
+    try {
+        const data = await request("/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: el("regName").value.trim(),
+                username: el("regUsername").value.trim(),
+                email: el("regEmail").value.trim(),
+                password: el("regPassword").value
+            })
+        });
+
+        showNotice(data.message || "Account created. Please sign in.", "success");
+        el("registerForm").reset();
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+});
+
+el("uploadForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    hideNotice();
+
+    const file = el("uploadFile").files[0];
+    if (!file) return showNotice("Please choose a file.", "error");
+    if (file.size > 5 * 1024 * 1024) {
+        return showNotice("File size must be 5 MB or less.", "error");
+    }
+
+    const form = new FormData();
+    form.append("document", file);
+    form.append("category", el("uploadCategory").value.trim() || "General");
+
+    try {
+        const result = await request("/documents/upload", {
+            method: "POST",
+            body: form
+        });
+        el("uploadForm").reset();
+        el("uploadCategory").value = "General";
+        showNotice(result.message || "Document uploaded successfully.", "success");
+        await loadDocuments();
+        await loadAudit();
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+});
+
+el("searchInput").addEventListener("input", () => {
+    renderDocuments(filterDocuments(el("searchInput").value));
+});
+
+function filterDocuments(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) return documentsCache;
+    return documentsCache.filter(doc =>
+        String(doc.original_name || "").toLowerCase().includes(q) ||
+        String(doc.category || "").toLowerCase().includes(q)
+    );
+}
+
+async function loadDocuments() {
+    if (!token) return;
+
+    try {
+        const data = await request("/documents");
+        documentsCache = Array.isArray(data) ? data : (data.documents || []);
+        el("totalDocs").textContent = documentsCache.length;
+        el("sharedDocs").textContent = documentsCache.filter(doc =>
+            Number(doc.is_owner) === 0
+        ).length;
+        renderDocuments(filterDocuments(el("searchInput").value));
+    } catch (error) {
+        el("documentsList").innerHTML =
+            '<div class="empty">Could not load documents. ' +
+            escapeHTML(error.message) + '</div>';
+    }
+}
+
+function renderDocuments(docs) {
+    const list = el("documentsList");
+
+    if (!docs.length) {
+        list.innerHTML = '<div class="empty">No documents found. Upload a file to get started.</div>';
+        return;
+    }
+
+    list.innerHTML = docs.map(doc => {
+        const id = Number(doc.id);
+        const isOwner = Number(doc.is_owner) === 1;
+        
+        const permission = String(doc.shared_permission || "").toUpperCase();
+        const canEdit = isOwner || permission === "EDIT";
+
+        return `
+        <article class="doc">
+            <h3>▤ &nbsp; ${escapeHTML(doc.original_name || "Untitled document")}</h3>
+            <p>Document ID: ${id}</p>
+            <p>Category: ${escapeHTML(doc.category || "General")}</p>
+            <p>Uploaded: ${escapeHTML(doc.uploaded_at || "—")}</p>
+            <p>Size: ${escapeHTML(doc.file_size ?? "—")} bytes</p>
+            <span class="badge">${isOwner ? "OWNER" : "SHARED · " + escapeHTML(permission || "VIEW")}</span>
+            <div class="actions">
+                <button onclick="downloadDocument(${id})">↓ Download</button>
+                ${canEdit ? `<button class="secondary" onclick="editDocument(${id})">✎ Edit</button>` : ""}
+                ${isOwner ? `<button class="secondary" onclick="shareDocument(${id})">⇄ Share</button>` : ""}
+                ${isOwner ? `<button class="danger" onclick="deleteDocument(${id})">Delete</button>` : ""}
+            </div>
+        </article>`;
+    }).join("");
+}
+
+async function downloadDocument(id) {
+    try {
+        const response = await fetch(API + "/documents/" + id + "/download", {
+            headers: { Authorization: "Bearer " + token }
+        });
+
+        if (!response.ok) {
+            let message = "Download failed (" + response.status + ")";
+            try {
+                const data = await response.json();
+                message = data.message || message;
+            } catch {}
+            throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = documentsCache.find(d => Number(d.id) === id)?.original_name || "document";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showNotice("Download started.", "success");
+        loadAudit();
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+}
+
+async function editDocument(id) {
+    const doc = documentsCache.find(d => Number(d.id) === id);
+    if (!doc) return;
+
+    const name = prompt("Enter document name:", doc.original_name || "");
+    if (name === null) return;
+    if (!name.trim()) return showNotice("Document name cannot be empty.", "error");
+
+    const category = prompt("Enter category:", doc.category || "General");
+    if (category === null) return;
+
+    try {
+        const result = await request("/documents/" + id, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                original_name: name.trim(),
+                category: category.trim() || "General"
+            })
+        });
+        showNotice(result.message || "Document updated.", "success");
+        await loadDocuments();
+        await loadAudit();
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+}
+
+async function deleteDocument(id) {
+    if (!confirm("Delete document ID " + id + "? This cannot be undone.")) return;
+
+    try {
+        const result = await request("/documents/" + id, { method: "DELETE" });
+        showNotice(result.message || "Document deleted.", "success");
+        await loadDocuments();
+        await loadAudit();
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+}
+
+async function shareDocument(id) {
+    const username = prompt("Share with which username?");
+    if (!username || !username.trim()) return;
+
+    const permission = prompt("Enter permission: VIEW or EDIT", "VIEW");
+    if (!permission) return;
+    const access = permission.trim().toUpperCase();
+
+    if (!["VIEW", "EDIT"].includes(access)) {
+        return showNotice("Permission must be VIEW or EDIT.", "error");
+    }
+
+    try {
+        const result = await request("/documents/" + id + "/share", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: username.trim(),
+                permission: access
+            })
+        });
+        showNotice(result.message || "Document shared.", "success");
+        await loadDocuments();
+        await loadAudit();
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+}
+
+el("shareForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const id = Number(el("shareDocumentId").value);
+    const username = el("shareUsername").value.trim();
+    const permission = el("sharePermission").value;
+
+    if (!id || !username) {
+        return showNotice("Enter a document ID and username.", "error");
+    }
+
+    try {
+        const result = await request("/documents/" + id + "/share", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, permission })
+        });
+        showNotice(result.message || "Document shared successfully.", "success");
+        el("shareForm").reset();
+        await loadDocuments();
+        await loadAudit();
+    } catch (error) {
+        showNotice(error.message, "error");
+    }
+});
+
+async function loadAudit() {
+    if (!token) return;
+
+    try {
+        const data = await request("/audit");
+        const logs = Array.isArray(data) ? data : (data.logs || []);
+        el("totalActivities").textContent = logs.length;
+
+        if (!logs.length) {
+            el("auditList").innerHTML = '<div class="empty">No activity recorded yet.</div>';
+            return;
+        }
+
+        el("auditList").innerHTML = logs.map(log => `
+            <div class="activity-row">
+                <div>
+                    <strong>${escapeHTML(log.action || "ACTIVITY")}</strong>
+                    <p>${escapeHTML(log.details || "No additional details")}</p>
+                    <p>Document ID: ${escapeHTML(log.document_id ?? "—")}</p>
+                </div>
+                <span class="muted">${escapeHTML(log.created_at || "")}</span>
+            </div>
+        `).join("");
+    } catch (error) {
+        el("auditList").innerHTML =
+            '<div class="empty">Audit history unavailable: ' +
+            escapeHTML(error.message) + '</div>';
+        el("totalActivities").textContent = "—";
+    }
+}
+
+async function initialize() {
+    if (!token) return;
+
+    try {
+        const data = await request("/documents");
+        documentsCache = Array.isArray(data) ? data : (data.documents || []);
+        currentUser = { username: "Signed-in user" };
+        setLoggedIn(currentUser);
+    } catch {
+        token = null;
+        sessionStorage.removeItem("trustvault_token");
+    }
+}
+
+initialize();
+</script>
+</body>
+</html>
