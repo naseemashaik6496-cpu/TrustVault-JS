@@ -1,16 +1,21 @@
 
 node_modules/
+
+# Environment secrets
 .env
+.env.*
+!.env.example
+
+# Database backup
+trustvault_backup.sql
+
+# Uploaded files and test files
 uploads/*
 !uploads/.gitkeep
 downloaded-test.txt
 shared-document.txt
 test-document.txt
-.env
-.env.*
-!.env.example
 
-trustvault_backup.sql
-node_modules/
-uploads/*
-!uploads/.gitkeep
+# Aiven CA certificate
+ca.pem
+aiven-ca.pem
