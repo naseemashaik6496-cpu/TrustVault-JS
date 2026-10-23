@@ -1,4 +1,3 @@
-
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
@@ -14,7 +13,6 @@ const uploadDir = path.join(__dirname, "../../uploads");
 fs.mkdirSync(uploadDir, { recursive: true });
 
 // AUTHENTICATION
-
 function authenticate(req, res, next) {
     const header = req.headers.authorization || "";
     const token = header.startsWith("Bearer ")
@@ -29,6 +27,13 @@ function authenticate(req, res, next) {
 
     try {
         req.user = jwt.verify(token, process.env.JWT_SECRET);
+
+        if (!req.user.id || !req.user.companyId) {
+            return res.status(401).json({
+                message: "Invalid authentication token"
+            });
+        }
+
         next();
     } catch {
         return res.status(401).json({
@@ -38,7 +43,6 @@ function authenticate(req, res, next) {
 }
 
 // FILE UPLOAD SETTINGS
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
@@ -69,7 +73,6 @@ const upload = multer({
 });
 
 // UPLOAD DOCUMENT
-
 router.post("/upload", authenticate, (req, res) => {
     upload.single("document")(req, res, async (error) => {
         if (error) {
@@ -92,11 +95,12 @@ router.post("/upload", authenticate, (req, res) => {
 
             const [result] = await pool.execute(
                 `INSERT INTO documents
-                (user_id, original_name, stored_name,
+                (user_id, company_id, original_name, stored_name,
                  category, mime_type, file_size)
-                VALUES (?, ?, ?, ?, ?, ?)`,
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     req.user.id,
+                    req.user.companyId,
                     path.basename(req.file.originalname),
                     req.file.filename,
                     category,
@@ -107,6 +111,7 @@ router.post("/upload", authenticate, (req, res) => {
 
             await logAction(
                 req.user.id,
+                req.user.companyId,
                 "UPLOAD",
                 result.insertId,
                 `Uploaded document: ${path.basename(req.file.originalname)}`
@@ -117,9 +122,7 @@ router.post("/upload", authenticate, (req, res) => {
                 documentId: result.insertId
             });
         } catch (error) {
-            if (req.file) {
-                fs.unlink(req.file.path, () => {});
-            }
+            fs.unlink(req.file.path, () => {});
 
             console.error("Upload error:", error.message);
 
@@ -131,7 +134,6 @@ router.post("/upload", authenticate, (req, res) => {
 });
 
 // LIST OWNED AND SHARED DOCUMENTS
-
 router.get("/", authenticate, async (req, res) => {
     try {
         const [documents] = await pool.execute(
@@ -148,10 +150,21 @@ router.get("/", authenticate, async (req, res) => {
              LEFT JOIN document_permissions dp
                 ON dp.document_id = d.id
                 AND dp.shared_with_user_id = ?
-             WHERE d.user_id = ?
-                OR dp.shared_with_user_id = ?
+                AND dp.company_id = ?
+             WHERE d.company_id = ?
+               AND (
+                    d.user_id = ?
+                    OR dp.shared_with_user_id = ?
+               )
              ORDER BY d.uploaded_at DESC`,
-            [req.user.id, req.user.id, req.user.id, req.user.id]
+            [
+                req.user.id,
+                req.user.id,
+                req.user.companyId,
+                req.user.companyId,
+                req.user.id,
+                req.user.id
+            ]
         );
 
         return res.json(documents);
@@ -165,7 +178,6 @@ router.get("/", authenticate, async (req, res) => {
 });
 
 // SEARCH DOCUMENTS
-
 router.get("/search", authenticate, async (req, res) => {
     try {
         const query = String(req.query.q || "").trim();
@@ -190,10 +202,26 @@ router.get("/search", authenticate, async (req, res) => {
              LEFT JOIN document_permissions dp
                 ON dp.document_id = d.id
                 AND dp.shared_with_user_id = ?
-             WHERE (d.user_id = ? OR dp.shared_with_user_id = ?)
-               AND (d.original_name LIKE ? OR d.category LIKE ?)
+                AND dp.company_id = ?
+             WHERE d.company_id = ?
+               AND (
+                    d.user_id = ?
+                    OR dp.shared_with_user_id = ?
+               )
+               AND (
+                    d.original_name LIKE ?
+                    OR d.category LIKE ?
+               )
              ORDER BY d.uploaded_at DESC`,
-            [req.user.id, req.user.id, req.user.id, term, term]
+            [
+                req.user.id,
+                req.user.companyId,
+                req.user.companyId,
+                req.user.id,
+                req.user.id,
+                term,
+                term
+            ]
         );
 
         return res.json(documents);
@@ -207,7 +235,6 @@ router.get("/search", authenticate, async (req, res) => {
 });
 
 // DOWNLOAD DOCUMENT
-
 router.get("/:id/download", authenticate, async (req, res) => {
     try {
         const documentId = Number(req.params.id);
@@ -219,17 +246,25 @@ router.get("/:id/download", authenticate, async (req, res) => {
         }
 
         const [rows] = await pool.execute(
-            `SELECT d.original_name, d.stored_name, d.user_id
+            `SELECT d.original_name, d.stored_name
              FROM documents d
              LEFT JOIN document_permissions dp
                 ON dp.document_id = d.id
                 AND dp.shared_with_user_id = ?
+                AND dp.company_id = ?
              WHERE d.id = ?
+               AND d.company_id = ?
                AND (
                     d.user_id = ?
                     OR dp.permission IN ('VIEW', 'EDIT')
                )`,
-            [req.user.id, documentId, req.user.id]
+            [
+                req.user.id,
+                req.user.companyId,
+                documentId,
+                req.user.companyId,
+                req.user.id
+            ]
         );
 
         if (rows.length === 0) {
@@ -248,6 +283,7 @@ router.get("/:id/download", authenticate, async (req, res) => {
 
         await logAction(
             req.user.id,
+            req.user.companyId,
             "DOWNLOAD",
             documentId,
             `Downloaded document: ${rows[0].original_name}`
@@ -264,7 +300,6 @@ router.get("/:id/download", authenticate, async (req, res) => {
 });
 
 // SHARE DOCUMENT
-
 router.post("/:id/share", authenticate, async (req, res) => {
     try {
         const documentId = Number(req.params.id);
@@ -289,8 +324,13 @@ router.post("/:id/share", authenticate, async (req, res) => {
         }
 
         const [documents] = await pool.execute(
-            "SELECT id FROM documents WHERE id = ? AND user_id = ?",
-            [documentId, req.user.id]
+            `SELECT id FROM documents
+             WHERE id = ? AND user_id = ? AND company_id = ?`,
+            [
+                documentId,
+                req.user.id,
+                req.user.companyId
+            ]
         );
 
         if (documents.length === 0) {
@@ -299,14 +339,19 @@ router.post("/:id/share", authenticate, async (req, res) => {
             });
         }
 
+        // Only share with a user in the same company.
         const [users] = await pool.execute(
-            "SELECT id FROM users WHERE username = ?",
-            [username.trim()]
+            `SELECT id FROM users
+             WHERE username = ? AND company_id = ?`,
+            [
+                username.trim(),
+                req.user.companyId
+            ]
         );
 
         if (users.length === 0) {
             return res.status(404).json({
-                message: "User not found"
+                message: "User not found in your company"
             });
         }
 
@@ -318,16 +363,25 @@ router.post("/:id/share", authenticate, async (req, res) => {
 
         await pool.execute(
             `INSERT INTO document_permissions
-             (document_id, owner_id, shared_with_user_id, permission)
-             VALUES (?, ?, ?, ?)
+             (document_id, owner_id, shared_with_user_id,
+              company_id, permission)
+             VALUES (?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 owner_id = VALUES(owner_id),
+                company_id = VALUES(company_id),
                 permission = VALUES(permission)`,
-            [documentId, req.user.id, users[0].id, permission]
+            [
+                documentId,
+                req.user.id,
+                users[0].id,
+                req.user.companyId,
+                permission
+            ]
         );
 
         await logAction(
             req.user.id,
+            req.user.companyId,
             "SHARE",
             documentId,
             `Shared with ${username.trim()} using ${permission} permission`
@@ -349,7 +403,6 @@ router.post("/:id/share", authenticate, async (req, res) => {
 });
 
 // UPDATE DOCUMENT
-
 router.put("/:id", authenticate, async (req, res) => {
     try {
         const documentId = Number(req.params.id);
@@ -386,12 +439,20 @@ router.put("/:id", authenticate, async (req, res) => {
              LEFT JOIN document_permissions dp
                 ON dp.document_id = d.id
                 AND dp.shared_with_user_id = ?
+                AND dp.company_id = ?
              WHERE d.id = ?
+               AND d.company_id = ?
                AND (
                     d.user_id = ?
                     OR dp.permission = 'EDIT'
                )`,
-            [req.user.id, documentId, req.user.id]
+            [
+                req.user.id,
+                req.user.companyId,
+                documentId,
+                req.user.companyId,
+                req.user.id
+            ]
         );
 
         if (documents.length === 0) {
@@ -413,16 +474,18 @@ router.put("/:id", authenticate, async (req, res) => {
             values.push(category.trim().slice(0, 100));
         }
 
-        values.push(documentId);
+        values.push(documentId, req.user.companyId);
 
         await pool.execute(
-            `UPDATE documents SET ${updates.join(", ")}
-             WHERE id = ?`,
+            `UPDATE documents
+             SET ${updates.join(", ")}
+             WHERE id = ? AND company_id = ?`,
             values
         );
 
         await logAction(
             req.user.id,
+            req.user.companyId,
             "UPDATE",
             documentId,
             "Updated document details"
@@ -441,7 +504,6 @@ router.put("/:id", authenticate, async (req, res) => {
 });
 
 // DELETE DOCUMENT (OWNER ONLY)
-
 router.delete("/:id", authenticate, async (req, res) => {
     try {
         const documentId = Number(req.params.id);
@@ -455,8 +517,12 @@ router.delete("/:id", authenticate, async (req, res) => {
         const [rows] = await pool.execute(
             `SELECT stored_name, original_name
              FROM documents
-             WHERE id = ? AND user_id = ?`,
-            [documentId, req.user.id]
+             WHERE id = ? AND user_id = ? AND company_id = ?`,
+            [
+                documentId,
+                req.user.id,
+                req.user.companyId
+            ]
         );
 
         if (rows.length === 0) {
@@ -467,14 +533,20 @@ router.delete("/:id", authenticate, async (req, res) => {
 
         await logAction(
             req.user.id,
+            req.user.companyId,
             "DELETE",
             documentId,
             `Deleted document: ${rows[0].original_name}`
         );
 
         await pool.execute(
-            "DELETE FROM documents WHERE id = ? AND user_id = ?",
-            [documentId, req.user.id]
+            `DELETE FROM documents
+             WHERE id = ? AND user_id = ? AND company_id = ?`,
+            [
+                documentId,
+                req.user.id,
+                req.user.companyId
+            ]
         );
 
         const filePath = path.join(uploadDir, rows[0].stored_name);

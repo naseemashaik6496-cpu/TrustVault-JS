@@ -8,6 +8,8 @@ const router = express.Router();
 
 // User Registration
 router.post("/register", async (req, res) => {
+    let connection;
+
     try {
         const { name, username, email, password } = req.body;
 
@@ -25,7 +27,7 @@ router.post("/register", async (req, res) => {
 
         const [existing] = await pool.execute(
             "SELECT id FROM users WHERE username = ? OR email = ?",
-            [username, email]
+            [username.trim(), email.trim()]
         );
 
         if (existing.length > 0) {
@@ -36,20 +38,53 @@ router.post("/register", async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        await pool.execute(
-            `INSERT INTO users (name, username, email, password)
-             VALUES (?, ?, ?, ?)`,
-            [name, username, email, hashedPassword]
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        // Create a separate company for this new registration.
+        const companyName =
+            "TrustVault Workspace - " + username.trim();
+
+        const [companyResult] = await connection.execute(
+            "INSERT INTO companies (name) VALUES (?)",
+            [companyName]
         );
+
+        const companyId = companyResult.insertId;
+
+        // Register the user under the newly created company.
+        await connection.execute(
+            `INSERT INTO users
+                (name, username, email, password, company_id)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+                name.trim(),
+                username.trim(),
+                email.trim(),
+                hashedPassword,
+                companyId
+            ]
+        );
+
+        await connection.commit();
 
         res.status(201).json({
             message: "Registration successful. You can now log in."
         });
     } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
+
         console.error("Registration error:", error.message);
+
         res.status(500).json({
             message: "Registration failed"
         });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 });
 
@@ -65,8 +100,10 @@ router.post("/login", async (req, res) => {
         }
 
         const [users] = await pool.execute(
-            "SELECT * FROM users WHERE username = ? OR email = ?",
-            [username, username]
+            `SELECT id, name, username, email, password, role, company_id
+             FROM users
+             WHERE username = ? OR email = ?`,
+            [username.trim(), username.trim()]
         );
 
         if (users.length === 0) {
@@ -76,6 +113,7 @@ router.post("/login", async (req, res) => {
         }
 
         const user = users[0];
+
         const validPassword = await bcrypt.compare(
             password,
             user.password
@@ -89,6 +127,7 @@ router.post("/login", async (req, res) => {
 
         if (!process.env.JWT_SECRET) {
             console.error("JWT_SECRET is not configured");
+
             return res.status(500).json({
                 message: "Server authentication configuration error"
             });
@@ -98,7 +137,8 @@ router.post("/login", async (req, res) => {
             {
                 id: user.id,
                 username: user.username,
-                role: user.role
+                role: user.role,
+                companyId: user.company_id
             },
             process.env.JWT_SECRET,
             { expiresIn: "2h" }
@@ -112,11 +152,13 @@ router.post("/login", async (req, res) => {
                 name: user.name,
                 username: user.username,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                companyId: user.company_id
             }
         });
     } catch (error) {
         console.error("Login error:", error.message);
+
         res.status(500).json({
             message: "Login failed"
         });
